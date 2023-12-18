@@ -6,3 +6,6 @@ Demo map app using a Neo4j Graph Database backend
 pipenv sync
 pipenv run streamlit run sd-startup-map/app.py
 ```
+
+## Folium API Reference
+https://python-visualization.github.io/folium/latest/reference.html
