@@ -9,6 +9,8 @@ neo4j = "*"
 streamlit-folium = "*"
 streamlit-js-eval = "*"
 pydantic = "*"
+pydeck = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
