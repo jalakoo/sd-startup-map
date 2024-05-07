@@ -8,6 +8,8 @@ streamlit = "*"
 neo4j = "*"
 streamlit-folium = "*"
 streamlit-js-eval = "*"
+folium = "*"
+pydantic = "*"
 
 [dev-packages]
 
