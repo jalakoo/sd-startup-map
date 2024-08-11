@@ -16,6 +16,7 @@ class Company(BaseModel):
     Logo: Optional[str] = None
     Lat: Optional[float] = None
     Lon: Optional[float] = None
+    Tags: Optional[list[str]] = None
 
 
 class Tag(BaseModel):

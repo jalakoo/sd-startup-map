@@ -6,6 +6,7 @@ from n4j import execute_query
 from models import Company, Tag
 import statistics
 from sidebar import sidebar
+from data_functions import get_companies, get_tags, sorted_tags
 
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
@@ -13,70 +14,8 @@ st.title("Experimental SD Startup Map")
 
 sidebar()
 
-
-@st.cache_data
-def get_tags():
-    tags_query = """
-    MATCH (c:Company)-[:TAGGED]-(t)
-    RETURN DISTINCT t
-    ORDER BY t.Name
-    """
-    records, _, _ = execute_query(tags_query, {})
-    results = []
-    for r in records:
-        # print(f"process tag record: {r}")
-        data = r.data()["t"]
-        try:
-            tag = Tag(**data)
-            results.append(tag)
-        except Exception as e:
-            print(f"\nProblem parsing Tag record: {r}: {e}")
-            continue
-    return results
-
-
-@st.cache_data
-def get_companies(tags: list[str]):
-
-    print(f"\ntags for retrieving companies: {tags}")
-
-    if len(tags) > 0:
-        query = """
-        MATCH (l:Location)<-[:HAS_OFFICE]-(c:Company)-[:TAGGED]->(t)
-        WHERE t.Name IN $tags
-        RETURN DISTINCT c.Id as Id, c.Description as Description, c.StartupYear as StartupYear, c.LinkedInUrl as LinkedInUrl, c.Url as Url, c.Name as Name, c.Logo as Logo, l.Latitude as Lat, l.Longitude as Lon
-        """
-        params = {"tags": tags}
-    else:
-        query = """
-        MATCH (l:Location)<-[:HAS_OFFICE]-(c:Company)-[:TAGGED]->(t)
-        RETURN DISTINCT c.Id as Id, c.Description as Description, c.StartupYear as StartupYear, c.LinkedInUrl as LinkedInUrl, c.Url as Url, c.Name as Name, c.Logo as Logo, l.Latitude as Lat, l.Longitude as Lon
-        """
-        params = {}
-
-    records, _, _ = execute_query(query, params)
-
-    # print(f"Company query response: {records}")
-
-    results = []
-    for r in records:
-        data = r.data()
-        # print(f"company record data: {data}")
-        try:
-            company = Company(**data)
-            results.append(company)
-        except Exception as e:
-            print(f"\nProblem parsing Company record: {r}: {e}")
-            continue
-
-    return results
-
-
-tags_list = get_tags()
-tags = [t.Name for t in tags_list]
-
 # Keyword based searching
-keywords = st.multiselect("Keyword Search", tags)
+keywords = st.multiselect("Keyword Search", sorted_tags())
 
 companies = get_companies(keywords)
 
