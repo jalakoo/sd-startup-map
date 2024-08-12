@@ -10,6 +10,7 @@ streamlit-folium = "*"
 streamlit-js-eval = "*"
 folium = "*"
 pydantic = "*"
+geopy = "*"
 
 [dev-packages]
 
