@@ -1,22 +1,25 @@
-from datetime import datetime
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
 from typing import Optional
 
 
-# Or Planet
 class Company(BaseModel):
-    Id: int
+    Name: str
+    UUID: str
+    Url: Optional[str] = None
     Description: Optional[str] = None
     # CreatedAt: Optional[datetime] = None
     StartupYear: Optional[int] = None
     LinkedInUrl: Optional[str] = None
     # UpdatedAt: Optional[datetime] = None
-    Url: Optional[str] = None
-    Name: Optional[str] = None
     Logo: Optional[str] = None
     Lat: Optional[float] = None
     Lon: Optional[float] = None
     Tags: Optional[list[str]] = None
+
+    Address: Optional[str] = None
+    City: Optional[str] = None
+    State: Optional[str] = None
+    ZipCode: Optional[str] = None
 
 
 class Tag(BaseModel):

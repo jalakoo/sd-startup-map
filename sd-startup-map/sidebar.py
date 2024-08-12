@@ -2,7 +2,9 @@ import streamlit as st
 import auth_functions
 from data_functions import find_company
 from datetime import datetime
-from data_functions import sorted_tags
+from data_functions import sorted_tags, add_company, delete_company, update_company
+from models import Company
+import logging
 
 
 def sidebar():
@@ -80,7 +82,6 @@ def sidebar():
             ):
                 with st.expander("Edit Startup Info"):
                     c_name = st.session_state["map_data"]["last_object_clicked_tooltip"]
-                    # st.header("Edit Startup:")
                     with st.form("Edit Startup"):
                         name = st.text_input(
                             label="Name",
@@ -98,9 +99,17 @@ def sidebar():
                             label="LinkedIn Url", value=company.LinkedInUrl
                         )
                         logo_url = st.text_input(label="Logo Url", value=company.Logo)
-                        lat = st.text_input(label="Office Latitude", value=company.Lat)
-                        lon = st.text_input(label="Office Longitude", value=company.Lon)
-                        print(f"tags: {company.Tags}")
+                        # lat = st.text_input(label="Office Latitude", value=company.Lat)
+                        # lon = st.text_input(label="Office Longitude", value=company.Lon)
+                        address = st.text_input(label="Address", value=company.Address)
+                        city = st.text_input(label="City", value=company.City)
+                        state = st.text_input(label="State", value=company.State)
+                        zip_code = st.text_input(
+                            label="Zip Code", value=company.ZipCode
+                        )
+
+                        logging.debug(f"tags: {company.Tags}")
+
                         associated_tags = st.multiselect(
                             label="Tags",
                             options=sorted_tags(),
@@ -108,47 +117,109 @@ def sidebar():
                         )
 
                         st.markdown("**Note:** Click off pin to reset")
+
                         submitted = st.form_submit_button(
                             label="Save Edit",
                             type="primary",
                         )
                         if submitted:
-                            pass
+                            try:
+                                new_company = Company(
+                                    UUID=company.UUID,
+                                    Name=name,
+                                    Description=description,
+                                    StartupYear=startup_year,
+                                    Url=url,
+                                    LinkedInUrl=linkedin,
+                                    Logo=logo_url,
+                                    Address=address,
+                                    City=city,
+                                    State=state,
+                                    ZipCode=zip_code,
+                                    Tags=associated_tags,
+                                )
+                                update_company(company, new_company)
+                                st.success(
+                                    f'Successfully updated Startup named "{name}"'
+                                )
+                            except Exception as e:
+                                logging.error(e)
+                                st.error("Error updating startup")
+
+                        delete_button = st.form_submit_button(
+                            "Delete Startup",
+                            type="secondary",
+                        )
+                        if delete_button:
+                            try:
+                                delete_company(company.UUID)
+                            except Exception as e:
+                                logging.error(e)
+                                st.error("Error deleting startup")
 
                 st.divider()
 
             with st.expander("Add New Startup"):
                 # Form for new startup
-                with st.form("Add New Startup"):
-                    # st.header("Add New Startup:")
-                    name = st.text_input(label="Name")
+                with st.form("Add New Startup", clear_on_submit=False):
+                    name = st.text_input(label="Name", value="test")
                     description = st.text_area(label="Description")
-                    startup_year = st.date_input(
+                    startup_year = st.number_input(
                         label="Year of founding",
-                        value=datetime.now(),
+                        value=datetime.now().year,
                     )
-                    url = st.text_input(label="Website Url")
+                    url = st.text_input(label="Website Url", value="test.com")
                     linkedin = st.text_input(label="LinkedIn Url")
                     logo_url = st.text_input(label="Logo Url")
-                    lat = st.text_input(label="Office Latitude")
-                    lon = st.text_input(label="Office Longitude")
+                    address = st.text_input(label="Address", value="12960 Cree Drive")
+                    city = st.text_input(label="City", value="San Diego")
+                    state = st.text_input(label="State", value="CA")
+                    zipcode = st.text_input(label="Zipcode", value="92064")
                     associated_tags = st.multiselect(
                         label="Tags",
-                        options=sorted_tags(),
+                        options=st.session_state["tags"],
                     )
 
                     new_submission = st.form_submit_button(
                         label="Create",
-                        args=[name],
+                        args=[
+                            name,
+                            description,
+                            startup_year,
+                            url,
+                            linkedin,
+                            logo_url,
+                            address,
+                            city,
+                            state,
+                            zipcode,
+                            associated_tags,
+                        ],
                         type="primary",
                     )
                     if new_submission:
-                        pass
+                        try:
+                            new_company = Company(
+                                Name=name,
+                                Description=description,
+                                StartupYear=startup_year,
+                                Url=url,
+                                LinkedInUrl=linkedin,
+                                Logo=logo_url,
+                                Address=address,
+                                City=city,
+                                State=state,
+                                ZipCode=zipcode,
+                                Tags=associated_tags,
+                            )
+                            add_company(new_company)
+                            st.success("New startup added!")
+                        except Exception as e:
+                            st.error(e)
 
             st.divider()
 
             # Sign out
-            # st.header("Sign out:")
             st.button(
                 label="Sign Out", on_click=auth_functions.sign_out, type="primary"
             )

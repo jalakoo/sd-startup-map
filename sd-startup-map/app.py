@@ -7,6 +7,17 @@ from models import Company, Tag
 import statistics
 from sidebar import sidebar
 from data_functions import get_companies, get_tags, sorted_tags
+import logging
+
+
+logging.basicConfig(level=logging.DEBUG)
+
+# Limit default Neo4j verbosity level
+logging.getLogger("neo4j").setLevel(logging.INFO)
+logging.getLogger("neo4j.io").setLevel(logging.INFO)
+logging.getLogger("neo4j.pool").setLevel(logging.INFO)
+logging.getLogger("neo4j_uploader").setLevel(logging.INFO)
+
 
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
@@ -14,12 +25,18 @@ st.title("Experimental SD Startup Map")
 
 sidebar()
 
+st.session_state["tags"] = sorted_tags()
+
 # Keyword based searching
-keywords = st.multiselect("Keyword Search", sorted_tags())
+keywords = st.multiselect("Keyword Search", st.session_state["tags"])
 
 companies = get_companies(keywords)
+st.session_state["companies"] = companies
 
 st.text(f"Found companies: {len(companies)}")
+
+if len(companies) == 0:
+    st.stop()
 
 # Auto find median lat and lons
 lats = [c.Lat for c in companies if c.Lat is not None]
