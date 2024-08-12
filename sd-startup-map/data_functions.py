@@ -40,14 +40,16 @@ def get_companies(tags: list[str]):
 
     if len(tags) > 0:
         query = """
-        MATCH (l:Location)<-[:HAS_OFFICE]-(c:Company)-[:TAGGED]->(t)
+        MATCH (l:Location)<-[:HAS_OFFICE]-(c:Company)
+        OPTIONAL MATCH (c)-[:TAGGED]->(t:Tag)
         WHERE t.Name IN $tags
         RETURN DISTINCT c.UUID as UUID, c.Description as Description, c.StartupYear as StartupYear, c.LinkedInUrl as LinkedInUrl, c.Url as Url, c.Name as Name, c.Logo as Logo, l.Latitude as Lat, l.Longitude as Lon, collect(t.Name) as Tags,l.Address as Address, l.City as City, l.State as State, l.Zip as Zip
         """
         params = {"tags": tags}
     else:
         query = """
-        MATCH (l:Location)<-[:HAS_OFFICE]-(c:Company)-[:TAGGED]->(t)
+        MATCH (l:Location)<-[:HAS_OFFICE]-(c:Company)
+        OPTIONAL MATCH (c)-[:TAGGED]->(t:Tag)
         RETURN DISTINCT c.UUID as UUID, c.Description as Description, c.StartupYear as StartupYear, c.LinkedInUrl as LinkedInUrl, c.Url as Url, c.Name as Name, c.Logo as Logo, l.Latitude as Lat, l.Longitude as Lon, collect(t.Name) as Tags, l.Address as Address, l.City as City, l.State as State, l.Zip as Zip
         """
         params = {}
@@ -69,8 +71,8 @@ def get_companies(tags: list[str]):
 
 def find_company(name: str) -> Company:
     query = """
-    MATCH (l:Location)<-[:HAS_OFFICE]-(c:Company)-[:TAGGED]->(t)
-    WHERE c.Name = $name
+    MATCH (c:Company {Name: $name})-[:HAS_OFFICE]->(l:Location)
+    OPTIONAL MATCH (c)-[:TAGGED]->(t:Tag)
     RETURN c.UUID as UUID, c.Description as Description, c.StartupYear as StartupYear, c.LinkedInUrl as LinkedInUrl, c.Url as Url, c.Name as Name, c.Logo as Logo, l.Latitude as Lat, l.Longitude as Lon, collect(t.Name) as Tags,l.Address as Address, l.City as City, l.State as State, l.Zip as Zip
     """
     params = {"name": name}
@@ -84,9 +86,6 @@ def find_company(name: str) -> Company:
             logging.debug(f"\nProblem parsing Company record: {r}: {e}. Skipping...")
             continue
     return None
-
-
-# def edit_company
 
 
 def create_new_tags(tags: list[str]):
@@ -158,15 +157,12 @@ def add_company(company: Company):
     _, summary, _ = create_new_location(
         company.Address, company.City, company.State, company.ZipCode
     )
-    logging.debug(
-        f"Created new location for company: {company.Name} with summary: {summary.__dict__}"
-    )
+    logging.debug(f"Created new location with summary: {summary.__dict__}")
 
     # Create Company
     query = """
     MERGE (c:Company {Url: $Url})
     ON CREATE SET
-        c.Id = $Id,
         c.UUID = $UUID,
         c.Description = $Description,
         c.StartupYear = $StartupYear,
@@ -175,29 +171,30 @@ def add_company(company: Company):
         c.Logo = $Logo
     """
     params = {
-        "Id": company.Id,
-        "UUID": str(uuid.uuid4()),
+        "UUID": company.UUID,
         "Description": company.Description,
         "StartupYear": company.StartupYear,
         "LinkedInUrl": company.LinkedInUrl,
         "Url": company.Url,
         "Name": company.Name,
         "Logo": company.Logo,
-        "Lat": company.Lat,
-        "Lon": company.Lon,
     }
     _, summary, _ = execute_query(query, params)
     logging.debug(f"Company created: {summary.__dict__}")
 
     # Create Company -> Office relationship
-    query = """_
-    MATCH (l:Location {Latitude: $Lat, Longitude: $Lon}),(c:Company {Url: $Url})
+    query = """
+    MATCH (c:Company {Url: $Url})
+    WITH c
+    MATCH (l:Location {Address: $Address, City: $City, State: $State, ZipCode: $ZipCode})
     MERGE (c)-[:HAS_OFFICE]->(l)
     """
     params = {
         "Url": company.Url,
-        "Lat": company.Lat,
-        "Lon": company.Lon,
+        "Address": company.Address,
+        "City": company.City,
+        "State": company.State,
+        "ZipCode": company.ZipCode,
     }
     _, summary, _ = execute_query(query, params)
     logging.debug(
@@ -205,23 +202,24 @@ def add_company(company: Company):
     )
 
     # Create Tags
-    _, summary, _ = create_new_tags(company.Tags)
-    logging.debug(f"Tags created: {summary.__dict__}")
+    if len(company.Tags) > 0:
+        _, summary, _ = create_new_tags(company.Tags)
+        logging.debug(f"Tags created: {summary.__dict__}")
 
-    # Create Company -> Tags Relationships
-    query = """
-    UNWIND $tags as tag
-    MATCH (c:Company {Url: $Url}), (t:Tag {Name: tag})
-    MERGE (c)-[:TAGGED]->(t)
-    """
-    params = {
-        "Url": company.Url,
-        "tags": company.Tags,
-    }
-    _, summary, _ = execute_query(query, params)
-    logging.debug(
-        f"(Company)-[:TAGGED]->(Tag) relationships created: {summary.__dict__}"
-    )
+        # Create Company -> Tags Relationships
+        query = """
+        UNWIND $tags as tag
+        MATCH (c:Company {Url: $Url}), (t:Tag {Name: tag})
+        MERGE (c)-[:TAGGED]->(t)
+        """
+        params = {
+            "Url": company.Url,
+            "tags": company.Tags,
+        }
+        _, summary, _ = execute_query(query, params)
+        logging.debug(
+            f"(Company)-[:TAGGED]->(Tag) relationships created: {summary.__dict__}"
+        )
 
     return
 
@@ -244,8 +242,7 @@ def update_company(original: Company, new: Company):
 
         # Remove old (Company)-[:HAS_OFFICE]->(Location) relationship
         query = """
-        MATCH (l:Location {Latitude: $Lat, Longitude: $Lon}),(c:Company {Url: $Url})
-        MATCH (c)-[r:HAS_OFFICE]->(l)
+        MATCH (c:Company {Url: $Url})-[r:HAS_OFFICE]->(l)
         MERGE (c)-[:HAD_OFFICE]->(l)
         DELETE r
         """
@@ -261,13 +258,17 @@ def update_company(original: Company, new: Company):
 
         # Add new (Company)-[:HAS_OFFICE]->(Location) relationship
         query = """
-        MATCH (l:Location {Latitude: $Lat, Longitude: $Lon}),(c:Company {Url: $Url})
+        MATCH (c:Company {Url: $Url}) 
+        WITH c
+        MATCH (l:Location {Address: $Address, City: $City, State: $State, ZipCode: $ZipCode})       
         MERGE (c)-[:HAS_OFFICE]->(l)
         """
         params = {
             "Url": new.Url,
-            "Lat": new.Lat,
-            "Lon": new.Lon,
+            "Address": new.Address,
+            "City": new.City,
+            "State": new.State,
+            "ZipCode": new.ZipCode,
         }
         _, summary, _ = execute_query(query, params)
         logging.debug(
@@ -309,15 +310,24 @@ def update_company(original: Company, new: Company):
     )
 
     # Add any new tags
-    _, summary, _ = create_new_tags(new.Tags)
-    logging.debug(f"Tags created: {summary.__dict__}")
+    if len(new.Tags) > 0:
+        _, summary, _ = create_new_tags(new.Tags)
+        logging.debug(f"Tags created: {summary.__dict__}")
 
-    # Add (Company)-[:TAGGED]->(Tag) relationships
-    query = """
-    UNWIND $tags as tag
-    MATCH (c:Company {UUID: $UUID}), (t:Tag {Name: tag})
-    MERGE (c)-[:TAGGED]->(t)
-    """
+        # Add (Company)-[:TAGGED]->(Tag) relationships
+        query = """
+        UNWIND $tags as tag
+        MATCH (c:Company {UUID: $UUID}), (t:Tag {Name: tag})
+        MERGE (c)-[:TAGGED]->(t)
+        """
+        params = {
+            "UUID": original.UUID,
+            "tags": new.Tags,
+        }
+        _, summary, _ = execute_query(query, params)
+        logging.debug(
+            f"(Company)-[:TAGGED]->(Tag) relationships created: {summary.__dict__}"
+        )
 
     return
 

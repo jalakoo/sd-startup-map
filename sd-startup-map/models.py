@@ -1,25 +1,26 @@
 from pydantic import BaseModel
 from typing import Optional
+import uuid
 
 
 class Company(BaseModel):
     Name: str
-    UUID: str
-    Url: Optional[str] = None
-    Description: Optional[str] = None
+    UUID: str = str(uuid.uuid4())
+    Url: Optional[str] = ""
+    Description: Optional[str] = ""
     # CreatedAt: Optional[datetime] = None
-    StartupYear: Optional[int] = None
-    LinkedInUrl: Optional[str] = None
+    StartupYear: Optional[int] = 0
+    LinkedInUrl: Optional[str] = ""
     # UpdatedAt: Optional[datetime] = None
-    Logo: Optional[str] = None
-    Lat: Optional[float] = None
-    Lon: Optional[float] = None
-    Tags: Optional[list[str]] = None
+    Logo: Optional[str] = ""
+    Lat: Optional[float] = 0.0
+    Lon: Optional[float] = 0.0
+    Tags: Optional[list[str]] = []
 
-    Address: Optional[str] = None
-    City: Optional[str] = None
-    State: Optional[str] = None
-    ZipCode: Optional[str] = None
+    Address: Optional[str] = ""
+    City: Optional[str] = ""
+    State: Optional[str] = ""
+    ZipCode: Optional[str] = ""
 
 
 class Tag(BaseModel):

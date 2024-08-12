@@ -82,99 +82,122 @@ def sidebar():
             ):
                 with st.expander("Edit Startup Info"):
                     c_name = st.session_state["map_data"]["last_object_clicked_tooltip"]
-                    with st.form("Edit Startup"):
-                        name = st.text_input(
-                            label="Name",
-                            value=c_name,
-                        )
-                        company = find_company(c_name)
-                        description = st.text_area(
-                            label="Description", value=company.Description
-                        )
-                        startup_year = st.number_input(
-                            label="Year of founding", value=company.StartupYear
-                        )
-                        url = st.text_input(label="Website Url", value=company.Url)
-                        linkedin = st.text_input(
-                            label="LinkedIn Url", value=company.LinkedInUrl
-                        )
-                        logo_url = st.text_input(label="Logo Url", value=company.Logo)
-                        # lat = st.text_input(label="Office Latitude", value=company.Lat)
-                        # lon = st.text_input(label="Office Longitude", value=company.Lon)
-                        address = st.text_input(label="Address", value=company.Address)
-                        city = st.text_input(label="City", value=company.City)
-                        state = st.text_input(label="State", value=company.State)
-                        zip_code = st.text_input(
-                            label="Zip Code", value=company.ZipCode
-                        )
+                    company = find_company(c_name)
+                    logging.debug(
+                        f"Startup selected: {c_name}, company data: {company}"
+                    )
+                    if company:
+                        with st.form("Edit Startup"):
+                            name = st.text_input(
+                                label="Name",
+                                value=c_name,
+                            )
+                            description = st.text_area(
+                                label="Description",
+                                value=company.Description,
+                            )
+                            startup_year = st.number_input(
+                                label="Year of founding",
+                                value=company.StartupYear,
+                            )
+                            url = st.text_input(
+                                label="Website Url",
+                                value=company.Url,
+                            )
+                            linkedin = st.text_input(
+                                label="LinkedIn Url",
+                                value=company.LinkedInUrl,
+                            )
+                            logo_url = st.text_input(
+                                label="Logo Url",
+                                value=company.Logo,
+                            )
+                            # lat = st.text_input(label="Office Latitude", value=company.Lat)
+                            # lon = st.text_input(label="Office Longitude", value=company.Lon)
+                            address = st.text_input(
+                                label="Address",
+                                value=company.Address,
+                            )
+                            city = st.text_input(
+                                label="City",
+                                value=company.City,
+                            )
+                            state = st.text_input(
+                                label="State",
+                                value=company.State,
+                            )
+                            zip_code = st.text_input(
+                                label="Zip Code",
+                                value=company.ZipCode,
+                            )
 
-                        logging.debug(f"tags: {company.Tags}")
+                            logging.debug(f"tags: {company.Tags}")
 
-                        associated_tags = st.multiselect(
-                            label="Tags",
-                            options=sorted_tags(),
-                            default=company.Tags,
-                        )
+                            associated_tags = st.multiselect(
+                                label="Tags",
+                                options=sorted_tags(),
+                                default=company.Tags,
+                            )
 
-                        st.markdown("**Note:** Click off pin to reset")
+                            st.markdown("**Note:** Click off pin to reset")
 
-                        submitted = st.form_submit_button(
-                            label="Save Edit",
-                            type="primary",
-                        )
-                        if submitted:
-                            try:
-                                new_company = Company(
-                                    UUID=company.UUID,
-                                    Name=name,
-                                    Description=description,
-                                    StartupYear=startup_year,
-                                    Url=url,
-                                    LinkedInUrl=linkedin,
-                                    Logo=logo_url,
-                                    Address=address,
-                                    City=city,
-                                    State=state,
-                                    ZipCode=zip_code,
-                                    Tags=associated_tags,
-                                )
-                                update_company(company, new_company)
-                                st.success(
-                                    f'Successfully updated Startup named "{name}"'
-                                )
-                            except Exception as e:
-                                logging.error(e)
-                                st.error("Error updating startup")
+                            submitted = st.form_submit_button(
+                                label="Save Edit",
+                                type="primary",
+                            )
+                            if submitted:
+                                try:
+                                    new_company = Company(
+                                        UUID=company.UUID,
+                                        Name=name,
+                                        Description=description,
+                                        StartupYear=startup_year,
+                                        Url=url,
+                                        LinkedInUrl=linkedin,
+                                        Logo=logo_url,
+                                        Address=address,
+                                        City=city,
+                                        State=state,
+                                        ZipCode=zip_code,
+                                        Tags=associated_tags,
+                                    )
+                                    update_company(company, new_company)
+                                    st.success(
+                                        f'Successfully updated Startup named "{name}"'
+                                    )
+                                except Exception as e:
+                                    logging.error(e)
+                                    st.error("Error updating startup")
 
-                        delete_button = st.form_submit_button(
-                            "Delete Startup",
-                            type="secondary",
-                        )
-                        if delete_button:
-                            try:
-                                delete_company(company.UUID)
-                            except Exception as e:
-                                logging.error(e)
-                                st.error("Error deleting startup")
+                            delete_button = st.form_submit_button(
+                                "Delete Startup",
+                                type="secondary",
+                            )
+                            if delete_button:
+                                try:
+                                    delete_company(company.UUID)
+                                except Exception as e:
+                                    logging.error(e)
+                                    st.error("Error deleting startup")
 
                 st.divider()
 
             with st.expander("Add New Startup"):
                 # Form for new startup
                 with st.form("Add New Startup", clear_on_submit=False):
-                    name = st.text_input(label="Name", value="test")
+                    name = st.text_input(label="Name")
                     description = st.text_area(label="Description")
                     startup_year = st.number_input(
                         label="Year of founding",
                         value=datetime.now().year,
                     )
-                    url = st.text_input(label="Website Url", value="test.com")
+                    url = st.text_input(label="Website Url")
                     linkedin = st.text_input(label="LinkedIn Url")
                     logo_url = st.text_input(label="Logo Url")
-                    address = st.text_input(label="Address", value="12960 Cree Drive")
-                    city = st.text_input(label="City", value="San Diego")
+                    address = st.text_input(label="Address")
+                    city = st.text_input(label="City")
                     state = st.text_input(label="State", value="CA")
-                    zipcode = st.text_input(label="Zipcode", value="92064")
+                    zipcode = st.text_input(label="Zipcode")
                     associated_tags = st.multiselect(
                         label="Tags",
                         options=st.session_state["tags"],
